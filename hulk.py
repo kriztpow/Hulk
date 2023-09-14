@@ -47,7 +47,7 @@ def set_safe_mode():
 
 def usage():
     print('---------------------------------------------------')
-    print('USO: python krist.py <url>')
+    print('USO: python hulk.py <url>')
     print('Puedes agregar "seguro" después de la URL para detener automáticamente después de la denegación de servicio (DoS).')
     print('---------------------------------------------------')
 
